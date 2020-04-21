@@ -1,0 +1,25 @@
+{
+    "name": "marqant/marqant-pay-stripe",
+    "description": "Stripe payment provider for marqant/marqant-pay package.",
+    "type": "package",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Thomas Venturini",
+            "email": "thomas@du.digital"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Marqant\\MarqantPayStripe\\": "src/"
+        },
+        "extra": {
+            "laravel": {
+                "providers": [
+                    "Marqant\\MarqantPayStripe\\MarqantPayStripeServiceProvider"
+                ]
+            }
+        }
+    }
+}
