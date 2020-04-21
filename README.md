@@ -38,3 +38,9 @@ php artisan marqant-pay:migrations:stripe App\\User
 # or
 php artisan marqant-pay:migrations:stripe "App\User"
 ```
+
+Now you can run the migrations as usual.
+
+```shell script
+php artisan migrate
+```
