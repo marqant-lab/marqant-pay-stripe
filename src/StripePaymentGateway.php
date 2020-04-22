@@ -2,6 +2,7 @@
 
 namespace Marqant\MarqantPayStripe;
 
+use Illuminate\Database\Eloquent\Model;
 use Marqant\MarqantPay\Contracts\PaymentGatewayContract;
 
 class StripePaymentGateway extends PaymentGatewayContract
@@ -31,6 +32,24 @@ class StripePaymentGateway extends PaymentGatewayContract
 
     // TODO: Implement management of customers
 
+    /**
+     * @inheritDoc
+     */
+    protected function savePaymentMethod(Model $Billable, array $payment_method): Model
+    {
+        // TODO: Implement savePaymentMethod() method.
+    }
+
+    // TODO: Implement handling of charges
+
+    /**
+     * @inheritDoc
+     */
+    protected function removePaymentMethod(Model $Billable, array $payment_method): Model
+    {
+        // TODO: Implement removePaymentMethod() method.
+    }
+
     /*
      |--------------------------------------------------------------------------
      | Subscriptions
@@ -43,6 +62,14 @@ class StripePaymentGateway extends PaymentGatewayContract
 
     // TODO: Implement management of subscriptions
 
+    /**
+     * @inheritDoc
+     */
+    protected function subscribe(Model $Billable, Model $Plan): Model
+    {
+        // TODO: Implement subscribe() method.
+    }
+
     /*
      |--------------------------------------------------------------------------
      | Charges
@@ -53,7 +80,13 @@ class StripePaymentGateway extends PaymentGatewayContract
      |
      */
 
-    // TODO: Implement handling of charges
+    /**
+     * @inheritDoc
+     */
+    protected function charge(Model $Billable, array $payment_method): Model
+    {
+        // TODO: Implement charge() method.
+    }
 
     /*
      |--------------------------------------------------------------------------
