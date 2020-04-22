@@ -12,14 +12,15 @@
     "require": {},
     "autoload": {
         "psr-4": {
+            "Marqant\\MarqantPayStripe\\Seeds\\": "database/seeds/",
             "Marqant\\MarqantPayStripe\\": "src/"
-        },
-        "extra": {
-            "laravel": {
-                "providers": [
-                    "Marqant\\MarqantPayStripe\\MarqantPayStripeServiceProvider"
-                ]
-            }
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Marqant\\MarqantPayStripe\\MarqantPayStripeServiceProvider"
+            ]
         }
     }
 }
