@@ -9,7 +9,9 @@
             "email": "thomas@du.digital"
         }
     ],
-    "require": {},
+    "require": {
+        "stripe/stripe-php": "^7.29"
+    },
     "autoload": {
         "psr-4": {
             "Marqant\\MarqantPayStripe\\Seeds\\": "database/seeds/",

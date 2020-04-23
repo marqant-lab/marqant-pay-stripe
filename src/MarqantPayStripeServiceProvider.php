@@ -2,6 +2,7 @@
 
 namespace Marqant\MarqantPayStripe;
 
+use Stripe\Stripe;
 use Illuminate\Support\ServiceProvider;
 use Marqant\MarqantPayStripe\Commands\MigrationsForBillable;
 
@@ -27,6 +28,8 @@ class MarqantPayStripeServiceProvider extends ServiceProvider
         $this->setupMigrations();
 
         $this->setupCommands();
+
+        $this->setupStripe();
     }
 
     /**
@@ -61,5 +64,14 @@ class MarqantPayStripeServiceProvider extends ServiceProvider
                 MigrationsForBillable::class,
             ]);
         }
+    }
+
+    private function setupStripe()
+    {
+        // set application key
+        Stripe::setApiKey(config('services.stripe.secret'));
+
+        // set application info
+        Stripe::setAppInfo('Marqant Pay', 'beta', 'https://github.com/marqant-lab/marqant-pay');
     }
 }

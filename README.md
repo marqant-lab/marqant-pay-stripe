@@ -10,6 +10,29 @@ You can just require this package through composer as follows.
 composer require marqant/marqant-pay-stripe
 ```
 
+Then you have to add the service infomration to the `services.php` configuration file of Laravel. To do so, update
+ the configuration file as shown below.
+ 
+```php
+return [
+    // other services
+    // ...
+
+    'stripe' => [
+        'key'    => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+    ],
+];
+```
+
+Next you have to add the environment variables. Go to your stripe dashboard and get your stripe key and secret, so
+ you can add it to your `.env` file.
+
+```dotenv
+STRIPE_KEY=pk_test_iLokikJOvEuI2HlWgH4olf3P
+STRIPE_SECRET=sk_test_BQokikJOvBiI2HlWgH4olfQ2
+```
+
 Now go ahead and enable the payment provider in the `marqant-pay.php` configuration file.
 
 ```php
