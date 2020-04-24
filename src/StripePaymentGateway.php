@@ -39,7 +39,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      * @return \Illuminate\Database\Eloquent\Model
      * @throws \Stripe\Exception\ApiErrorException
      */
-    public function createCustomer(Model $Billable): Model
+    public function createCustomer(Model &$Billable): Model
     {
         $Customer = Customer::create([
             'email' => $Billable->email,
@@ -83,7 +83,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      * @return \Illuminate\Database\Eloquent\Model
      * @throws \Stripe\Exception\ApiErrorException
      */
-    public function savePaymentMethod(Model $Billable, PaymentMethodContract $PaymentMethod): Model
+    public function savePaymentMethod(Model &$Billable, PaymentMethodContract $PaymentMethod): Model
     {
         // create the payment method on the provider
         if ($PaymentMethod->object->customer !== $Billable->stripe_id) {
@@ -101,25 +101,35 @@ class StripePaymentGateway extends PaymentGatewayContract
     /**
      * Update the information stored on the billable.
      *
-     * @param \Illuminate\Database\Eloquent\Model                 $Billable
-     * @param \Marqant\MarqantPay\Contracts\PaymentMethodContract $PaymentMethod
+     * @param \Illuminate\Database\Eloquent\Model                      $Billable
+     * @param null|\Marqant\MarqantPay\Contracts\PaymentMethodContract $PaymentMethod
      *
      * @return void
      */
-    private static function updatePaymentMethodInformation(Model &$Billable, PaymentMethodContract $PaymentMethod): void
+    private static function updatePaymentMethodInformation(Model &$Billable,
+                                                           ?PaymentMethodContract $PaymentMethod = null): void
     {
-        $data = [
-            'stripe_pm_token' => $PaymentMethod->object->id,
-        ];
+        if ($PaymentMethod) {
+            $data = [
+                'stripe_pm_token' => $PaymentMethod->object->id,
+            ];
 
-        if ($PaymentMethod->object->type == 'card') {
-            $Card = $PaymentMethod->object->card;
+            if ($PaymentMethod->object->type == 'card') {
+                $Card = $PaymentMethod->object->card;
 
-            $data = array_merge($data, [
-                'marqant_pay_method'         => 'card',
-                'marqant_pay_card_brand'     => $Card->brand,
-                'marqant_pay_card_last_four' => $Card->last4,
-            ]);
+                $data = array_merge($data, [
+                    'marqant_pay_method'         => 'card',
+                    'marqant_pay_card_brand'     => $Card->brand,
+                    'marqant_pay_card_last_four' => $Card->last4,
+                ]);
+            }
+        } else {
+            $data = [
+                'stripe_pm_token'            => null,
+                'marqant_pay_method'         => null,
+                'marqant_pay_card_brand'     => null,
+                'marqant_pay_card_last_four' => null,
+            ];
         }
 
         $Billable->update($data);
@@ -155,11 +165,25 @@ class StripePaymentGateway extends PaymentGatewayContract
     }
 
     /**
-     * @inheritDoc
+     * Remove payment method from billable.
+     *
+     * @param \Illuminate\Database\Eloquent\Model                 $Billable
+     *
+     * @param \Marqant\MarqantPay\Contracts\PaymentMethodContract $PaymentMethod
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     *
+     * @throws \Exception
      */
-    public function removePaymentMethod(Model $Billable, array $payment_method): Model
+    public function removePaymentMethod(Model &$Billable, PaymentMethodContract $PaymentMethod): Model
     {
-        // TODO: Implement removePaymentMethod() method.
+        // remove payment method on stripe
+        $PaymentMethod->object->detach();
+
+        // update columns on billable
+        self::updatePaymentMethodInformation($Billable);
+
+        return $Billable;
     }
 
     /*
@@ -209,7 +233,7 @@ class StripePaymentGateway extends PaymentGatewayContract
     /**
      * @inheritDoc
      */
-    public function subscribe(Model $Billable, Model $Plan): Model
+    public function subscribe(Model &$Billable, Model $Plan): Model
     {
         // TODO: Implement subscribe() method.
     }
