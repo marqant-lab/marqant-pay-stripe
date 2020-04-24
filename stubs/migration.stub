@@ -15,6 +15,7 @@ class {{CLASS_NAME}} extends Migration
     {
         Schema::table('{{TABLE_NAME}}', function (Blueprint $table) {
             $table->string('stripe_id')->nullable();
+            $table->string('stripe_pm_token')->nullable();
         });
     }
 

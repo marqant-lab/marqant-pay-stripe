@@ -67,3 +67,5 @@ Now you can run the migrations as usual.
 ```shell script
 php artisan migrate
 ```
+
+And that's it, you should be good to go now.
