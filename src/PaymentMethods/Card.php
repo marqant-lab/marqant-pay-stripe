@@ -14,6 +14,11 @@ class Card extends PaymentMethodContract
     protected string $type = 'card';
 
     /**
+     * @var string The provider to use with this payment method.
+     */
+    protected string $provider = 'stripe';
+
+    /**
      * @var string
      */
     protected string $provider_type = 'card';

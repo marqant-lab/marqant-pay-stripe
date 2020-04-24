@@ -2,8 +2,9 @@
 
 namespace Marqant\MarqantPayStripe;
 
+use Exception;
 use Stripe\Customer;
-use Marqant\MarqantPay\Models\Payment;
+use Stripe\PaymentIntent;
 use Illuminate\Database\Eloquent\Model;
 use Marqant\MarqantPay\Services\MarqantPay;
 use Marqant\MarqantPay\Contracts\PaymentMethodContract;
@@ -196,14 +197,98 @@ class StripePaymentGateway extends PaymentGatewayContract
      |
      */
 
-    // TODO: Implement handling of charges
+    /**
+     * Charge a given billable for a given amount.
+     *
+     * @param \Illuminate\Database\Eloquent\Model                      $Billable
+     * @param int                                                      $amount
+     * @param null|\Marqant\MarqantPay\Contracts\PaymentMethodContract $PaymentMethod
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     *
+     * @throws \Stripe\Exception\ApiErrorException
+     * @throws \Exception
+     */
+    public function charge(Model $Billable, int $amount, ?PaymentMethodContract $PaymentMethod = null): Model
+    {
+        /**
+         * @var \App\User $Billable
+         */
+
+        // resolve payment method
+        if (!$PaymentMethod) {
+            $PaymentMethod = MarqantPay::getPaymentMethodOfBillable($Billable);
+        }
+
+        // check if we actually have a payment method
+        if (!$PaymentMethod) {
+            throw new Exception('No payment method provided to charge.');
+        }
+
+        // create options for stripe payment (payment intent)
+        $options = [
+            'customer'            => $Billable->stripe_id,
+            'amount'              => $amount,
+            'payment_method'      => $PaymentMethod->object,
+            'currency'            => $this->getCurrency(),
+            'confirmation_method' => 'automatic',
+            'confirm'             => true,
+        ];
+
+        // create payment (payment intent) on stripes end
+        $PaymentIntent = PaymentIntent::create($options);
+
+        // validate the payment intent
+        self::validatePaymentIntent($PaymentIntent);
+
+        // create payment
+        $Payment = $Billable->payments()
+            ->create([
+
+                // default fields
+                'provider'               => self::PAYMENT_PROVIDER,
+                'currency'               => $PaymentIntent->currency,
+
+                // TODO: resolve propperly against configuration
+                'status'                 => $PaymentIntent->status,
+
+                // TODO: find out if we can use `amount` or if we have to use `amount_received` instead. Maybe we even
+                //       need both of them.
+                'amount'                 => $PaymentIntent->amount,
+
+                // stripe fields
+                'stripe_payment_intent'  => $PaymentIntent->id,
+                'stripe_pm_token'        => $PaymentIntent->payment_method,
+                'stripe_customer'        => $PaymentIntent->customer,
+                'stripe_status'          => $PaymentIntent->status,
+
+                // TODO: find out if we can use `amount` or if we have to use `amount_received` instead. Maybe we even
+                //       need both of them.
+                'stripe_amount_received' => $PaymentIntent->amount_received,
+
+                // TODO: find out if we need the transaction or the carge
+                'stripe_charge'          => $PaymentIntent->charges['data'][0]['id'],
+                'stripe_transaction'     => $PaymentIntent->charges['data'][0]['balance_transaction'],
+            ]);
+
+        return $Payment;
+    }
 
     /**
-     * @inheritDoc
+     * Provide basic validation of a made payment intent.
+     *
+     * @param \Stripe\PaymentIntent $PaymentIntent
+     *
+     * @return void
+     *
+     * @throws \Exception
      */
-    public function charge(Model $Billable, int $amount): Payment
+    private static function validatePaymentIntent(PaymentIntent $PaymentIntent): void
     {
-        // TODO: Implement charge() method.
+        // check that a payment method is attached to the payment intent
+        if ($PaymentIntent->status === PaymentIntent::STATUS_REQUIRES_PAYMENT_METHOD) {
+            throw new Exception('The payment failed because of an invalid payment method.');
+        }
     }
 
     /*

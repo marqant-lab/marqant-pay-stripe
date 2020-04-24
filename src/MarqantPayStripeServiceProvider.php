@@ -43,6 +43,23 @@ class MarqantPayStripeServiceProvider extends ServiceProvider
     }
 
     /**
+     * Setup Stripe API.
+     *
+     * @return void
+     */
+    private function setupStripe()
+    {
+        // set application key
+        Stripe::setApiKey(config('services.stripe.secret'));
+
+        // set application info
+        Stripe::setAppInfo('Marqant Pay', 'beta', 'https://github.com/marqant-lab/marqant-pay');
+
+        // set api version to use
+        Stripe::setApiVersion('2020-03-02');
+    }
+
+    /**
      * Setup migrations in boot method.
      *
      * @return void
@@ -64,14 +81,5 @@ class MarqantPayStripeServiceProvider extends ServiceProvider
                 MigrationsForBillable::class,
             ]);
         }
-    }
-
-    private function setupStripe()
-    {
-        // set application key
-        Stripe::setApiKey(config('services.stripe.secret'));
-
-        // set application info
-        Stripe::setAppInfo('Marqant Pay', 'beta', 'https://github.com/marqant-lab/marqant-pay');
     }
 }
