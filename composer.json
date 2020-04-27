@@ -1,5 +1,5 @@
 {
-    "name": "marqant/marqant-pay-stripe",
+    "name": "marqant-lab/marqant-pay-stripe",
     "description": "Stripe payment provider for marqant/marqant-pay package.",
     "type": "package",
     "license": "MIT",
