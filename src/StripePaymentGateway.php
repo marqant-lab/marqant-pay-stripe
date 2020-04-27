@@ -3,6 +3,7 @@
 namespace Marqant\MarqantPayStripe;
 
 use Exception;
+use Stripe\Plan;
 use Stripe\Customer;
 use Stripe\PaymentIntent;
 use Illuminate\Database\Eloquent\Model;
@@ -301,7 +302,70 @@ class StripePaymentGateway extends PaymentGatewayContract
      |
      */
 
-    // TODO: Implement management of plans
+    /**
+     * Create a plan on stripe.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Plan
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     * @throws \Stripe\Exception\ApiErrorException
+     * @throws \Exception
+     */
+    public function createPlan(Model $Plan): Model
+    {
+        /**
+         * @var \Marqant\MarqantPaySubscriptions\Models\Plan $Plan
+         */
+
+        // connect plan with provider model
+        $Provider = app(config('marqant-pay.provider_model'));
+        $Plan->providers()
+            ->syncWithoutDetaching([$Provider->id]);
+
+        // create plan on stripe
+        $StripePlan = Plan::create([
+            'amount'   => $Plan->amount,
+            'currency' => self::getCurrency(),
+            'interval' => self::resolvePlanIntervalFromPlan($Plan),
+            'product'  => [
+                'name' => $Plan->name,
+            ],
+        ]);
+
+        // update the values on the plan
+        $Plan->update([
+            'stripe_id'      => $StripePlan->id,
+            'stripe_product' => $StripePlan->product,
+        ]);
+
+        return $Plan;
+    }
+
+    /**
+     * Resolve the interval
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Plan
+     *
+     * @return string
+     * @throws \Exception
+     */
+    public static function resolvePlanIntervalFromPlan(Model $Plan): string
+    {
+        /**
+         * @var \Marqant\MarqantPaySubscriptions\Models\Plan $Plan
+         */
+
+        $map = [
+            'yearly'  => 'year',
+            'monthly' => 'month',
+        ];
+
+        if (!in_array($Plan->type, $map)) {
+            throw new Exception('Could not resolve type on plan to stripe intveral.');
+        }
+
+        return $map[$Plan->type];
+    }
 
     /*
      |--------------------------------------------------------------------------

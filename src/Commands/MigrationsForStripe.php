@@ -8,7 +8,7 @@ use Marqant\MarqantPay\Traits\Billable;
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\Finder\SplFileInfo;
 
-class MigrationsForBillable extends Command
+class MigrationsForStripe extends Command
 {
     /**
      * The name and signature of the console command.
@@ -45,6 +45,8 @@ class MigrationsForBillable extends Command
         $Billable = $this->getBillableModel();
 
         $this->makeMigrationForBillable($Billable);
+
+        $this->makeMigrationForPlans();
 
         $this->info('Done! 👍');
     }
