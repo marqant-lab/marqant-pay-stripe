@@ -122,7 +122,7 @@ class MigrationsForBillable extends Command
      */
     private function getStubPath(): string
     {
-        $stub_path = base_path('vendor/marqant/marqant-pay-stripe/stubs/migration.stub');
+        $stub_path = base_path('vendor/marqant-lab/marqant-pay-stripe/stubs/migration.stub');
 
         return $stub_path;
     }
