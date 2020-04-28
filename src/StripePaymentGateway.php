@@ -395,6 +395,7 @@ class StripePaymentGateway extends PaymentGatewayContract
     {
         /**
          * @var \Marqant\MarqantPaySubscriptions\Models\Subscription $SubscriptionModel
+         * @var \App\User                                            $Billable
          */
         // create stripe subscription
         $customer = $Billable->stripe_id;
@@ -411,11 +412,13 @@ class StripePaymentGateway extends PaymentGatewayContract
         $StripeSubscription = StripeSubscription::create($subscription);
 
         // create local subscription with data from stripe
-        $SubscriptionModel = app(config('marqant-pay-subscriptions.subscription_model'));
-        $SubscriptionModel::create([// TODO: fill subscription
-        ]);
+        $Billable->subscriptions()
+            ->create([
+                'plan_id'   => $Plan->id,
+                'stripe_id' => $StripeSubscription->id,
+            ]);
 
-        ddi($StripeSubscription);
+        return $Billable;
     }
 
     /*

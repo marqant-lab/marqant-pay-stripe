@@ -2,12 +2,15 @@
 
 namespace Marqant\MarqantPayStripe\Commands;
 
+use Str;
+use Illuminate\Support\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Marqant\MarqantPay\Traits\Billable;
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\Finder\SplFileInfo;
 use Marqant\MarqantPaySubscriptions\Traits\RepresentsPlan;
+use Marqant\MarqantPaySubscriptions\Traits\RepresentsSubscription;
 
 class MigrationsForStripe extends Command
 {
@@ -48,6 +51,8 @@ class MigrationsForStripe extends Command
 
         $this->makeMigrationForPlan();
 
+        $this->makeMigrationForSubscriptions();
+
         $this->info('Done! 👍');
     }
 
@@ -77,6 +82,36 @@ class MigrationsForStripe extends Command
         $this->checkIfModelIsPlan($Plan);
 
         return $Plan;
+    }
+
+    /**
+     * Get billable argument from input and resolve it to a model with the Billable trait attached.
+     *
+     * @return Model
+     */
+    private function getSubscriptionModel()
+    {
+        $Plan = app(config('marqant-pay-subscriptions.subscription_model'));
+
+        $this->checkIfModelIsSubscription($Plan);
+
+        return $Plan;
+    }
+
+    /**
+     * Ensure, that the given model actually uses the RepresentsSubscription trait.
+     * If it doesn't, print out an error message and exit the command.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Subscription
+     */
+    private function checkIfModelIsSubscription(Model $Subscription): void
+    {
+        $traits = class_uses($Subscription);
+
+        if (!collect($traits)->contains(RepresentsSubscription::class)) {
+            $this->error('The given model is not a Subscription.');
+            exit(1);
+        }
     }
 
     /**
@@ -168,6 +203,51 @@ class MigrationsForStripe extends Command
     }
 
     /**
+     * Create migrations for Subscription model.
+     *
+     * @return void
+     */
+    private function makeMigrationForSubscriptions(): void
+    {
+        if (!$this->option('subscriptions')) {
+            return;
+        }
+
+        $Plan = $this->getPlanModel();
+
+        $plans_table = $this->getTableFromModel($Plan);
+
+        $plan_singular = $this->getSingular($plans_table);
+
+        $table = "billable_{$plan_singular}";
+
+        $class_name = "Billable" . ucfirst($plan_singular);
+
+        $stub_path = $this->getSubscriptionStubPath();
+
+        $stub = $this->getStub($stub_path);
+
+        $this->replaceClassName($stub, $class_name);
+
+        $this->replaceTableName($stub, $table);
+
+        $this->saveMigration($stub, $table, Carbon::now()
+            ->addMinutes(2));
+    }
+
+    /**
+     * Return singular of a plural.
+     *
+     * @param string $plural
+     *
+     * @return string
+     */
+    private function getSingular(string $plural): string
+    {
+        return Str::singular($plural);
+    }
+
+    /**
      * @return string
      */
     private function getBillableStubPath(): string
@@ -181,6 +261,14 @@ class MigrationsForStripe extends Command
     private function getPlanStubPath(): string
     {
         return base_path('vendor/marqant-lab/marqant-pay-stripe/stubs/plan_fields.stub');
+    }
+
+    /**
+     * @return string
+     */
+    private function getSubscriptionStubPath(): string
+    {
+        return base_path('vendor/marqant-lab/marqant-pay-stripe/stubs/subscription_fields.stub');
     }
 
     /**
@@ -229,15 +317,17 @@ class MigrationsForStripe extends Command
     }
 
     /**
-     * @param string $stub
+     * @param string                          $stub
      *
-     * @param string $table
+     * @param string                          $table
+     *
+     * @param null|\Illuminate\Support\Carbon $timestamp
      *
      * @return void
      */
-    private function saveMigration(string $stub, string $table): void
+    private function saveMigration(string $stub, string $table, ?Carbon $timestamp = null): void
     {
-        $file_name = $this->getMigrationFileName($table);
+        $file_name = $this->getMigrationFileName($table, $timestamp);
 
         $path = database_path('migrations');
 
@@ -247,21 +337,31 @@ class MigrationsForStripe extends Command
     }
 
     /**
-     * @return string
-     */
-    private function getMigrationPrefix(): string
-    {
-        return date('Y_m_d_His');
-    }
-
-    /**
-     * @param string $table
+     * @param null|\Illuminate\Support\Carbon $timestamp
      *
      * @return string
      */
-    private function getMigrationFileName(string $table): string
+    private function getMigrationPrefix(?Carbon $timestamp = null): string
     {
-        $prefix = $this->getMigrationPrefix();
+        $format = 'Y_m_d_His';
+
+        if ($timestamp) {
+            return $timestamp->format($format);
+        }
+
+        return Carbon::now()
+            ->format($format);
+    }
+
+    /**
+     * @param string                          $table
+     * @param null|\Illuminate\Support\Carbon $timestamp
+     *
+     * @return string
+     */
+    private function getMigrationFileName(string $table, ?Carbon $timestamp = null): string
+    {
+        $prefix = $this->getMigrationPrefix($timestamp);
 
         return $prefix . "_add_marqant_pay_stripe_fields_to_{$table}_table.php";
     }
