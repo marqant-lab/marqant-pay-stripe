@@ -5,10 +5,10 @@ namespace Marqant\MarqantPayStripe;
 use Exception;
 use Stripe\Plan;
 use Stripe\Customer;
-use Stripe\Subscription;
 use Stripe\PaymentIntent;
 use Illuminate\Database\Eloquent\Model;
 use Marqant\MarqantPay\Services\MarqantPay;
+use Stripe\Subscription as StripeSubscription;
 use Marqant\MarqantPay\Contracts\PaymentMethodContract;
 use Marqant\MarqantPay\Contracts\PaymentGatewayContract;
 
@@ -393,9 +393,12 @@ class StripePaymentGateway extends PaymentGatewayContract
      */
     public function subscribe(Model &$Billable, Model $Plan): Model
     {
+        /**
+         * @var \Marqant\MarqantPaySubscriptions\Models\Subscription $SubscriptionModel
+         */
+        // create stripe subscription
         $customer = $Billable->stripe_id;
         $payment_method = $Billable->stripe_pm_token;
-
         $subscription = [
             'customer'               => $customer,
             'default_payment_method' => $payment_method,
@@ -405,12 +408,14 @@ class StripePaymentGateway extends PaymentGatewayContract
                 ],
             ],
         ];
+        $StripeSubscription = StripeSubscription::create($subscription);
 
-        $Subscription = Subscription::create($subscription);
+        // create local subscription with data from stripe
+        $SubscriptionModel = app(config('marqant-pay-subscriptions.subscription_model'));
+        $SubscriptionModel::create([// TODO: fill subscription
+        ]);
 
-        // add subscription details to billable plan relationship (pivot table)
-
-        ddi($Subscription);
+        ddi($StripeSubscription);
     }
 
     /*
