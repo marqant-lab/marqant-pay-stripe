@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\File;
 use Marqant\MarqantPay\Traits\Billable;
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\Finder\SplFileInfo;
+use Marqant\MarqantPaySubscriptions\Traits\RepresentsPlan;
 
 class MigrationsForStripe extends Command
 {
@@ -16,7 +17,8 @@ class MigrationsForStripe extends Command
      * @var string
      */
     protected $signature = 'marqant-pay:migrations:stripe
-                                {billable : The billable model to create the migrations for.}';
+                                {billable : The billable model to create the migrations for.}
+                                {-- subscriptions : Should the subscription migrations also be run.}';
 
     /**
      * The console command description.
@@ -42,11 +44,9 @@ class MigrationsForStripe extends Command
      */
     public function handle()
     {
-        $Billable = $this->getBillableModel();
+        $this->makeMigrationForBillable();
 
-        $this->makeMigrationForBillable($Billable);
-
-        $this->makeMigrationForPlans();
+        $this->makeMigrationForPlan();
 
         $this->info('Done! 👍');
     }
@@ -66,6 +66,20 @@ class MigrationsForStripe extends Command
     }
 
     /**
+     * Get billable argument from input and resolve it to a model with the Billable trait attached.
+     *
+     * @return Model
+     */
+    private function getPlanModel()
+    {
+        $Plan = app(config('marqant-pay-subscriptions.plan_model'));
+
+        $this->checkIfModelIsPlan($Plan);
+
+        return $Plan;
+    }
+
+    /**
      * Ensure, that the given model actually uses the Billable trait.
      * If it doesn't, print out an error message and exit the command.
      *
@@ -82,33 +96,67 @@ class MigrationsForStripe extends Command
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Model $Billable
+     * Ensure, that the given model actually uses the Billable trait.
+     * If it doesn't, print out an error message and exit the command.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Plan
+     */
+    private function checkIfModelIsPlan(Model $Plan): void
+    {
+        $traits = class_uses($Plan);
+
+        if (!collect($traits)->contains(RepresentsPlan::class)) {
+            $this->error('The given model does not represent a Plan.');
+            exit(1);
+        }
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Model $Model
      *
      * @return string
      */
-    private function getTableFromBillable(Model $Billable): string
+    private function getTableFromModel(Model $Model): string
     {
-        return $Billable->getTable();
+        return $Model->getTable();
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Model $Billable
+     * @return void
+     */
+    private function makeMigrationForBillable()
+    {
+        $Billable = $this->getBillableModel();
+
+        $table = $this->getTableFromModel($Billable);
+
+        $stub_path = $this->getBillableStubPath();
+
+        $stub = $this->getStub($stub_path);
+
+        $this->replaceClassName($stub, $table);
+
+        $this->replaceTableName($stub, $table);
+
+        $this->saveMigration($stub, $table);
+    }
+
+    /**
+     * Create migrations for Plan model.
      *
      * @return void
      */
-    private function makeMigrationForBillable(Model $Billable)
+    private function makeMigrationForPlan(): void
     {
-        $table = $this->getTableFromBillable($Billable);
+        if (!$this->option('subscriptions')) {
+            return;
+        }
 
-        $this->makeMigration($table);
-    }
+        $Plan = $this->getPlanModel();
 
-    /**
-     * @param string $table
-     */
-    private function makeMigration(string $table)
-    {
-        $stub_path = $this->getStubPath();
+        $table = $this->getTableFromModel($Plan);
+
+        $stub_path = $this->getPlanStubPath();
 
         $stub = $this->getStub($stub_path);
 
@@ -122,11 +170,17 @@ class MigrationsForStripe extends Command
     /**
      * @return string
      */
-    private function getStubPath(): string
+    private function getBillableStubPath(): string
     {
-        $stub_path = base_path('vendor/marqant-lab/marqant-pay-stripe/stubs/migration.stub');
+        return base_path('vendor/marqant-lab/marqant-pay-stripe/stubs/billable_fields.stub');
+    }
 
-        return $stub_path;
+    /**
+     * @return string
+     */
+    private function getPlanStubPath(): string
+    {
+        return base_path('vendor/marqant-lab/marqant-pay-stripe/stubs/plan_fields.stub');
     }
 
     /**
@@ -214,7 +268,6 @@ class MigrationsForStripe extends Command
 
     /**
      * @param string $path
-     *
      * @param string $table
      */
     private function preventDuplicates(string $path, string $table)
