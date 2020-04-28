@@ -318,7 +318,10 @@ class StripePaymentGateway extends PaymentGatewayContract
          */
 
         // connect plan with provider model
-        $Provider = app(config('marqant-pay.provider_model'));
+        $Provider = app(config('marqant-pay.provider_model'))
+            ->where('slug', self::PAYMENT_PROVIDER)
+            ->first();
+
         $Plan->providers()
             ->syncWithoutDetaching([$Provider->id]);
 
@@ -360,7 +363,7 @@ class StripePaymentGateway extends PaymentGatewayContract
             'monthly' => 'month',
         ];
 
-        if (!in_array($Plan->type, $map)) {
+        if (!key_exists($Plan->type, $map)) {
             throw new Exception('Could not resolve type on plan to stripe intveral.');
         }
 
