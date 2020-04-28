@@ -5,6 +5,7 @@ namespace Marqant\MarqantPayStripe;
 use Exception;
 use Stripe\Plan;
 use Stripe\Customer;
+use Stripe\Subscription;
 use Stripe\PaymentIntent;
 use Illuminate\Database\Eloquent\Model;
 use Marqant\MarqantPay\Services\MarqantPay;
@@ -380,14 +381,36 @@ class StripePaymentGateway extends PaymentGatewayContract
      |
      */
 
-    // TODO: Implement management of subscriptions
-
     /**
-     * @inheritDoc
+     * Subscribe a given Billable to a plan on the payment provider side.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Billable
+     * @param \Illuminate\Database\Eloquent\Model $Plan
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     *
+     * @throws \Stripe\Exception\ApiErrorException
      */
     public function subscribe(Model &$Billable, Model $Plan): Model
     {
-        // TODO: Implement subscribe() method.
+        $customer = $Billable->stripe_id;
+        $payment_method = $Billable->stripe_pm_token;
+
+        $subscription = [
+            'customer'               => $customer,
+            'default_payment_method' => $payment_method,
+            'items'                  => [
+                [
+                    'plan' => $Plan->stripe_id,
+                ],
+            ],
+        ];
+
+        $Subscription = Subscription::create($subscription);
+
+        // add subscription details to billable plan relationship (pivot table)
+
+        ddi($Subscription);
     }
 
     /*
