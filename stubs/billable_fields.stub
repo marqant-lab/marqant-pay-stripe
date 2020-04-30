@@ -28,7 +28,8 @@ class {{CLASS_NAME}} extends Migration
     {
         Schema::table('{{TABLE_NAME}}', function(Blueprint $table) {
             $table->dropColumn([
-                'stripe_id'
+                'stripe_id',
+                'stripe_pm_token'
             ]);
         });
     }

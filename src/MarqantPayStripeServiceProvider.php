@@ -4,7 +4,7 @@ namespace Marqant\MarqantPayStripe;
 
 use Stripe\Stripe;
 use Illuminate\Support\ServiceProvider;
-use Marqant\MarqantPayStripe\Commands\MigrationsForBillable;
+use Marqant\MarqantPayStripe\Commands\MigrationsForStripe;
 
 class MarqantPayStripeServiceProvider extends ServiceProvider
 {
@@ -78,7 +78,7 @@ class MarqantPayStripeServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                MigrationsForBillable::class,
+                MigrationsForStripe::class,
             ]);
         }
     }

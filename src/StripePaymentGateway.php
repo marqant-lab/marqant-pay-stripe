@@ -3,10 +3,12 @@
 namespace Marqant\MarqantPayStripe;
 
 use Exception;
+use Stripe\Plan;
 use Stripe\Customer;
 use Stripe\PaymentIntent;
 use Illuminate\Database\Eloquent\Model;
 use Marqant\MarqantPay\Services\MarqantPay;
+use Stripe\Subscription as StripeSubscription;
 use Marqant\MarqantPay\Contracts\PaymentMethodContract;
 use Marqant\MarqantPay\Contracts\PaymentGatewayContract;
 
@@ -301,7 +303,73 @@ class StripePaymentGateway extends PaymentGatewayContract
      |
      */
 
-    // TODO: Implement management of plans
+    /**
+     * Create a plan on stripe.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Plan
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     * @throws \Stripe\Exception\ApiErrorException
+     * @throws \Exception
+     */
+    public function createPlan(Model $Plan): Model
+    {
+        /**
+         * @var \Marqant\MarqantPaySubscriptions\Models\Plan $Plan
+         */
+
+        // connect plan with provider model
+        $Provider = app(config('marqant-pay.provider_model'))
+            ->where('slug', self::PAYMENT_PROVIDER)
+            ->first();
+
+        $Plan->providers()
+            ->syncWithoutDetaching([$Provider->id]);
+
+        // create plan on stripe
+        $StripePlan = Plan::create([
+            'amount'   => $Plan->amount,
+            'currency' => self::getCurrency(),
+            'interval' => self::resolvePlanIntervalFromPlan($Plan),
+            'product'  => [
+                'name' => $Plan->name,
+            ],
+        ]);
+
+        // update the values on the plan
+        $Plan->update([
+            'stripe_id'      => $StripePlan->id,
+            'stripe_product' => $StripePlan->product,
+        ]);
+
+        return $Plan;
+    }
+
+    /**
+     * Resolve the interval
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Plan
+     *
+     * @return string
+     * @throws \Exception
+     */
+    public static function resolvePlanIntervalFromPlan(Model $Plan): string
+    {
+        /**
+         * @var \Marqant\MarqantPaySubscriptions\Models\Plan $Plan
+         */
+
+        $map = [
+            'yearly'  => 'year',
+            'monthly' => 'month',
+        ];
+
+        if (!key_exists($Plan->type, $map)) {
+            throw new Exception('Could not resolve type on plan to stripe intveral.');
+        }
+
+        return $map[$Plan->type];
+    }
 
     /*
      |--------------------------------------------------------------------------
@@ -313,14 +381,44 @@ class StripePaymentGateway extends PaymentGatewayContract
      |
      */
 
-    // TODO: Implement management of subscriptions
-
     /**
-     * @inheritDoc
+     * Subscribe a given Billable to a plan on the payment provider side.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Billable
+     * @param \Illuminate\Database\Eloquent\Model $Plan
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     *
+     * @throws \Stripe\Exception\ApiErrorException
      */
     public function subscribe(Model &$Billable, Model $Plan): Model
     {
-        // TODO: Implement subscribe() method.
+        /**
+         * @var \Marqant\MarqantPaySubscriptions\Models\Subscription $SubscriptionModel
+         * @var \App\User                                            $Billable
+         */
+        // create stripe subscription
+        $customer = $Billable->stripe_id;
+        $payment_method = $Billable->stripe_pm_token;
+        $subscription = [
+            'customer'               => $customer,
+            'default_payment_method' => $payment_method,
+            'items'                  => [
+                [
+                    'plan' => $Plan->stripe_id,
+                ],
+            ],
+        ];
+        $StripeSubscription = StripeSubscription::create($subscription);
+
+        // create local subscription with data from stripe
+        $Billable->subscriptions()
+            ->create([
+                'plan_id'   => $Plan->id,
+                'stripe_id' => $StripeSubscription->id,
+            ]);
+
+        return $Billable;
     }
 
     /*

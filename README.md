@@ -7,7 +7,7 @@ This package makes the stripe payment provider available for the marqant/marqant
 You can just require this package through composer as follows.
 
 ```shell script
-composer require marqant/marqant-pay-stripe
+composer require marqant-lab/marqant-pay-stripe
 ```
 
 Then you have to add the service infomration to the `services.php` configuration file of Laravel. To do so, update
@@ -60,6 +60,15 @@ Next you will need to add the fields for stripe on the billables you setup in th
 php artisan marqant-pay:migrations:stripe App\\User
 # or
 php artisan marqant-pay:migrations:stripe "App\User"
+```
+
+If you are using the [marqant-lab/marqant-pay-subscriptions](https://github.com/marqant-lab/marqant-pay-subscriptions
+) package to enable subscriptions, then you will need to add the `--subscriptions` flag to the choosen command.
+ 
+```shell script
+php artisan marqant-pay:migrations:stripe App\\User --subscriptions
+# or
+php artisan marqant-pay:migrations:stripe "App\User" --subscriptions
 ```
 
 Now you can run the migrations as usual.
