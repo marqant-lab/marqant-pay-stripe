@@ -7,6 +7,7 @@ use Stripe\Plan;
 use Stripe\Customer;
 use Stripe\PaymentIntent;
 use Illuminate\Database\Eloquent\Model;
+use Stripe\SetupIntent as StripeSetupIntent;
 use Marqant\MarqantPay\Services\MarqantPay;
 use Stripe\Subscription as StripeSubscription;
 use Marqant\MarqantPay\Contracts\PaymentMethodContract;
@@ -76,6 +77,24 @@ class StripePaymentGateway extends PaymentGatewayContract
      | methods of the payment methods of a customer on stripe.
      |
      */
+
+    /**
+     * Create a SetupIntent on the provider side (stripe) to perform all authentication up front.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Billable
+     *
+     * @return \Stripe\SetupIntent
+     */
+    public static function createSetupIntent(Model $Billable): StripeSetupIntent
+    {
+        /**
+         * @var \App\User $Billable
+         */
+
+        return StripeSetupIntent::create([
+            'customer' => $Billable->stripe_id,
+        ]);
+    }
 
     /**
      * Save the provided payment method to the given Billable on the payment provider side.
@@ -235,6 +254,7 @@ class StripePaymentGateway extends PaymentGatewayContract
             'currency'            => $this->getCurrency(),
             'confirmation_method' => 'automatic',
             'confirm'             => true,
+            'off_session'         => true,
         ];
 
         // create payment (payment intent) on stripes end
