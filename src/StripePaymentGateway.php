@@ -297,6 +297,23 @@ class StripePaymentGateway extends PaymentGatewayContract
     }
 
     /**
+     * @param Model $Payment
+     *
+     * @return Model
+     *
+     * @throws \Stripe\Exception\ApiErrorException
+     */
+    public function updatePaymentStatus(Model $Payment): Model
+    {
+        // retrieve payment (payment intent) from stripes end
+        $PaymentIntent = PaymentIntent::retrieve($Payment->stripe_payment_intent, []);
+        $Payment->stripe_status = $PaymentIntent->status;
+        $Payment->save();
+
+        return $Payment;
+    }
+
+    /**
      * Provide basic validation of a made payment intent.
      *
      * @param \Stripe\PaymentIntent $PaymentIntent
