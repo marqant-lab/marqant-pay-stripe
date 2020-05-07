@@ -10,7 +10,8 @@
         }
     ],
     "require": {
-        "stripe/stripe-php": "^7.29"
+        "stripe/stripe-php": "^7.29",
+        "spatie/laravel-stripe-webhooks": "^2.3"
     },
     "autoload": {
         "psr-4": {
