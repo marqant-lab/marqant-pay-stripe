@@ -16,7 +16,8 @@ return [
      * https://stripe.com/docs/api#event_types.
      */
     'jobs' => [
-        'payment_intent_succeeded' => \Marqant\MarqantPayStripe\Jobs\HandlePaymentIntentSucceeded::class,
+        'payment_intent_succeeded'  => \Marqant\MarqantPayStripe\Jobs\HandlePaymentIntentSucceeded::class,
+        'invoice_payment_succeeded' => \Marqant\MarqantPayStripe\Jobs\HandleInvoicePaymentSucceeded::class,
     ],
 
     /*
