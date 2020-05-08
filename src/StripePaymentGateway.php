@@ -223,14 +223,15 @@ class StripePaymentGateway extends PaymentGatewayContract
      *
      * @param \Illuminate\Database\Eloquent\Model                      $Billable
      * @param int                                                      $amount
+     * @param string                                                   $description
      * @param null|\Marqant\MarqantPay\Contracts\PaymentMethodContract $PaymentMethod
      *
      * @return \Illuminate\Database\Eloquent\Model
      *
      * @throws \Stripe\Exception\ApiErrorException
-     * @throws \Exception
      */
-    public function charge(Model $Billable, int $amount, ?PaymentMethodContract $PaymentMethod = null): Model
+    public function charge(Model $Billable, int $amount, string $description,
+                           ?PaymentMethodContract $PaymentMethod = null): Model
     {
         /**
          * @var \App\User $Billable
@@ -250,6 +251,7 @@ class StripePaymentGateway extends PaymentGatewayContract
         $options = [
             'customer'            => $Billable->stripe_id,
             'amount'              => $amount,
+            'description'         => $description,
             'payment_method'      => $PaymentMethod->object,
             'currency'            => $this->getCurrency(),
             'confirmation_method' => 'automatic',
@@ -277,6 +279,9 @@ class StripePaymentGateway extends PaymentGatewayContract
                 // TODO: find out if we can use `amount` or if we have to use `amount_received` instead. Maybe we even
                 //       need both of them.
                 'amount'                 => $PaymentIntent->amount,
+
+                // description of the payment used in invoice
+                'description'            => $description,
 
                 // stripe fields
                 'stripe_payment_intent'  => $PaymentIntent->id,
