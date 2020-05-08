@@ -115,5 +115,6 @@ http://your.awesome.site/stripe/webhook
 
 Available stripe events:  
  - payment_intent.succeeded
+ - invoice.payment_succeeded
 
 That's all you need
