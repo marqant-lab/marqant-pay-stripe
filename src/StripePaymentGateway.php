@@ -307,8 +307,10 @@ class StripePaymentGateway extends PaymentGatewayContract
     {
         // retrieve payment (payment intent) from stripes end
         $PaymentIntent = PaymentIntent::retrieve($Payment->stripe_payment_intent, []);
-        $Payment->stripe_status = $PaymentIntent->status;
-        $Payment->save();
+        $Payment->update([
+            'status'        => $PaymentIntent->status,
+            'stripe_status' => $PaymentIntent->status,
+        ]);
 
         return $Payment;
     }

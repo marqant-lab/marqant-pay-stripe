@@ -20,7 +20,9 @@ class HandlePaymentIntentSucceeded implements ShouldQueue
 
     use InteractsWithQueue, Queueable, SerializesModels;
 
-    /** @var \Spatie\WebhookClient\Models\WebhookCall */
+    /**
+     * @var \Spatie\WebhookClient\Models\WebhookCall
+     */
     public $webhookCall;
 
     public function __construct(WebhookCall $webhookCall)
@@ -33,11 +35,11 @@ class HandlePaymentIntentSucceeded implements ShouldQueue
      */
     public function handle()
     {
-        $webHookData = $this->webhookCall->payload;
-        if (empty($webHookData['data']['object']['id']))
+        $webhook_data = $this->webhookCall->payload;
+        if (empty($webhook_data['data']['object']['id']))
             throw new \Exception('Empty PaymentIntent ID');
 
-        $paymentID = $webHookData['data']['object']['id'];
+        $paymentID = $webhook_data['data']['object']['id'];
         $Payment = Payment::where('stripe_payment_intent', $paymentID)
             ->firstOrFail();
 
