@@ -298,7 +298,7 @@ class StripePaymentGateway extends PaymentGatewayContract
                 'amount'                 => $PaymentIntent->amount,
 
                 // description of the payment used in invoice
-                'description'            => $description,
+                'description'            => $PaymentIntent->description,
 
                 // stripe fields
                 'stripe_payment_intent'  => $PaymentIntent->id,
