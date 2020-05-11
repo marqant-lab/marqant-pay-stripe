@@ -43,6 +43,13 @@ class HandleInvoicePaymentSucceeded implements ShouldQueue
 
         // Update Payment status in case not new Payment
         MarqantPay::updatePaymentStatus($Payment);
+
+        /**
+         * Create Invoice
+         *
+         * @var \Marqant\MarqantPay\Models\Payment $Payment
+         */
+        $Payment->createInvoice();
     }
 
 }
