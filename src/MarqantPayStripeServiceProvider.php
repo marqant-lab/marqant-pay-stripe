@@ -3,6 +3,7 @@
 namespace Marqant\MarqantPayStripe;
 
 use Stripe\Stripe;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Marqant\MarqantPayStripe\Commands\MigrationsForStripe;
 
@@ -30,6 +31,8 @@ class MarqantPayStripeServiceProvider extends ServiceProvider
         $this->setupCommands();
 
         $this->setupStripe();
+
+        $this->setupRoutes();
     }
 
     /**
@@ -40,6 +43,7 @@ class MarqantPayStripeServiceProvider extends ServiceProvider
     private function setupConfig()
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/marqant-pay-stripe.php', 'marqant-pay-stripe');
+        $this->mergeConfigFrom(__DIR__ . '/../config/stripe-webhooks.php', 'stripe-webhooks');
     }
 
     /**
@@ -80,6 +84,25 @@ class MarqantPayStripeServiceProvider extends ServiceProvider
             $this->commands([
                 MigrationsForStripe::class,
             ]);
+        }
+    }
+
+    /**
+     * Register package routes.
+     *
+     * @return void
+     */
+    private function setupRoutes(): void
+    {
+        if (!$this->app->routesAreCached()) {
+            // Fixed bug 'Attribute [stripeWebhooks] does not exist.'
+            if (!property_exists('Illuminate\\Support\\Facades\\Route', 'stripeWebhooks')) {
+                Route::macro('stripeWebhooks', function ($url) {
+                    return Route::post($url, '\Spatie\StripeWebhooks\StripeWebhooksController');
+                });
+            }
+
+            require __DIR__ . '/../routes/web.php';
         }
     }
 }

@@ -4,11 +4,13 @@ namespace Marqant\MarqantPayStripe;
 
 use Exception;
 use Stripe\Plan;
+use Stripe\Charge;
 use Stripe\Customer;
 use Stripe\PaymentIntent;
+use Marqant\MarqantPay\Models\Payment;
 use Illuminate\Database\Eloquent\Model;
-use Stripe\SetupIntent as StripeSetupIntent;
 use Marqant\MarqantPay\Services\MarqantPay;
+use Stripe\SetupIntent as StripeSetupIntent;
 use Stripe\Subscription as StripeSubscription;
 use Marqant\MarqantPay\Contracts\PaymentMethodContract;
 use Marqant\MarqantPay\Contracts\PaymentGatewayContract;
@@ -262,6 +264,21 @@ class StripePaymentGateway extends PaymentGatewayContract
         // create payment (payment intent) on stripes end
         $PaymentIntent = PaymentIntent::create($options);
 
+        return self::createPaymentFromPaymentIntent($Billable, $PaymentIntent);
+    }
+
+    /**
+     * Create DB Payment from Stripe PaymentIntent
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Billable
+     * @param \Stripe\PaymentIntent               $PaymentIntent
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     *
+     * @throws Exception
+     */
+    public static function createPaymentFromPaymentIntent(Model $Billable, PaymentIntent $PaymentIntent): Model
+    {
         // validate the payment intent
         self::validatePaymentIntent($PaymentIntent);
 
@@ -281,7 +298,7 @@ class StripePaymentGateway extends PaymentGatewayContract
                 'amount'                 => $PaymentIntent->amount,
 
                 // description of the payment used in invoice
-                'description'            => $description,
+                'description'            => $PaymentIntent->description,
 
                 // stripe fields
                 'stripe_payment_intent'  => $PaymentIntent->id,
@@ -302,6 +319,159 @@ class StripePaymentGateway extends PaymentGatewayContract
     }
 
     /**
+     * Create DB Payment from Stripe Charge
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Billable
+     * @param \Stripe\Charge                      $Charge
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     *
+     * @throws Exception
+     */
+    public static function createPaymentFromCharge(Model $Billable, Charge $Charge): Model
+    {
+        // validate the payment intent
+        self::validateCharge($Charge);
+
+        // create payment
+        $Payment = $Billable->payments()
+            ->create([
+
+                // default fields
+                'provider'               => self::PAYMENT_PROVIDER,
+                'currency'               => $Charge->currency,
+
+                // TODO: resolve propperly against configuration
+                'status'                 => $Charge->status,
+
+                // TODO: find out if we can use `amount` or if we have to use `amount_received` instead. Maybe we even
+                //       need both of them.
+                'amount'                 => $Charge->amount,
+
+                // stripe fields
+                'stripe_payment_intent'  => $Charge->payment_intent ?? '',
+                'stripe_pm_token'        => $Charge->payment_method,
+                'stripe_customer'        => $Charge->customer,
+                'stripe_status'          => $Charge->status,
+
+                // TODO: find out if we can use `amount` or if we have to use `amount_received` instead. Maybe we even
+                //       need both of them.
+                'stripe_amount_received' => $Charge->amount,
+
+                // TODO: find out if we need the transaction or the carge
+                'stripe_charge'          => $Charge->id,
+                'stripe_transaction'     => $Charge->balance_transaction,
+            ]);
+
+        return $Payment;
+    }
+
+    /**
+     * @param Model $Payment
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     *
+     * @throws \Stripe\Exception\ApiErrorException
+     */
+    public function updatePaymentStatus(Model $Payment): Model
+    {
+        // retrieve payment (payment intent) from stripes end
+        $PaymentIntent = PaymentIntent::retrieve($Payment->stripe_payment_intent, []);
+        $Payment->update([
+            'status'        => $PaymentIntent->status,
+            'stripe_status' => $PaymentIntent->status,
+        ]);
+
+        return $Payment;
+    }
+
+    /**
+     * Create Payment using Stripe data
+     *
+     * @param string $payment_id
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     *
+     * @throws \Exception
+     * @throws \Stripe\Exception\ApiErrorException
+     */
+    public function createPaymentByProviderPaymentID(string $payment_id): Model
+    {
+        // Get PaymentIntent from Stripe
+        $PaymentIntent = PaymentIntent::retrieve($payment_id);
+
+        // Get customer
+        $billables = config('marqant-pay.billables', []);
+        $Billable  = collect($billables)->first();
+        $Billable  = $Billable::where('stripe_id', $PaymentIntent->customer)
+            ->firstOrFail();
+
+        return self::createPaymentFromPaymentIntent($Billable, $PaymentIntent);
+    }
+
+    /**
+     * Get or create (if not exists) Invoice Payment using Stripe data
+     *
+     * @param array $invoice_data
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     *
+     * @throws \Exception
+     * @throws \Stripe\Exception\ApiErrorException
+     */
+    public function getPaymentByInvoice(array $invoice_data): Model
+    {
+        // Get customer
+        $billables = config('marqant-pay.billables', []);
+        $Billable  = collect($billables)->first();
+        $Billable  = $Billable::where('stripe_id', $invoice_data['customer'])
+            ->firstOrFail();
+
+        // Get PaymentIntent and get Payment
+        if (isset($invoice_data['payment_intent'])) {
+
+            // Get PaymentIntent from Stripe
+            $PaymentIntent = PaymentIntent::retrieve($invoice_data['payment_intent']);
+
+            // Try to get Payment from database
+            $Payment = Payment::where('stripe_payment_intent', $PaymentIntent->id)
+                ->first();
+
+            // Create Payment
+            if (empty($Payment)){
+                return self::createPaymentFromPaymentIntent($Billable, $PaymentIntent);
+            }
+
+            return $Payment;
+        }
+
+        // Get Charge and get Payment
+        if (isset($invoice_data['charge'])) {
+
+            // Get Charge from Stripe
+            $Charge = Charge::retrieve($invoice_data['charge']);
+            if (isset($Charge->payment_intent)) {
+
+                // Get PaymentIntent from Stripe
+                $PaymentIntent = PaymentIntent::retrieve($Charge->payment_intent);
+
+                // Try to get Payment from database
+                $Payment = Payment::where('stripe_payment_intent', $PaymentIntent->id)
+                    ->first();
+            }
+
+            // Create Payment
+            if (empty($Payment)) {
+                return self::createPaymentFromCharge($Billable, $Charge);
+            }
+
+            return $Payment;
+        }
+
+        throw new Exception('Can\'t get Payment using current Invoice data' );
+    }
+
+    /**
      * Provide basic validation of a made payment intent.
      *
      * @param \Stripe\PaymentIntent $PaymentIntent
@@ -315,6 +485,22 @@ class StripePaymentGateway extends PaymentGatewayContract
         // check that a payment method is attached to the payment intent
         if ($PaymentIntent->status === PaymentIntent::STATUS_REQUIRES_PAYMENT_METHOD) {
             throw new Exception('The payment failed because of an invalid payment method.');
+        }
+    }
+
+    /**
+     * Check if charge is failed.
+     *
+     * @param \Stripe\Charge $Charge
+     *
+     * @return void
+     *
+     * @throws \Exception
+     */
+    private static function validateCharge(Charge $Charge): void
+    {
+        if ($Charge->status === Charge::STATUS_FAILED) {
+            throw new Exception('The charge is failed.');
         }
     }
 
