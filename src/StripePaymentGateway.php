@@ -3,12 +3,17 @@
 namespace Marqant\MarqantPayStripe;
 
 use Exception;
+use Stripe\Plan;
+use Stripe\Charge;
+use Stripe\Customer;
+use Stripe\PaymentIntent;
 use Marqant\MarqantPay\Models\Payment;
 use Illuminate\Database\Eloquent\Model;
 use Marqant\MarqantPay\Services\MarqantPay;
-use Marqant\MarqantPay\Contracts\{PaymentMethodContract, PaymentGatewayContract};
-use Stripe\{Plan, Charge, Customer, PaymentIntent,
-    SetupIntent as StripeSetupIntent,Subscription as StripeSubscription};
+use Stripe\SetupIntent as StripeSetupIntent;
+use Stripe\Subscription as StripeSubscription;
+use Marqant\MarqantPay\Contracts\PaymentMethodContract;
+use Marqant\MarqantPay\Contracts\PaymentGatewayContract;
 
 /**
  * Class StripePaymentGateway
@@ -378,17 +383,17 @@ class StripePaymentGateway extends PaymentGatewayContract
     /**
      * Create Payment using Stripe data
      *
-     * @param string $paymentID
+     * @param string $payment_id
      *
      * @return \Illuminate\Database\Eloquent\Model
      *
      * @throws \Exception
      * @throws \Stripe\Exception\ApiErrorException
      */
-    public function createPaymentByProviderPaymentID(string $paymentID): Model
+    public function createPaymentByProviderPaymentID(string $payment_id): Model
     {
         // Get PaymentIntent from Stripe
-        $PaymentIntent = PaymentIntent::retrieve($paymentID);
+        $PaymentIntent = PaymentIntent::retrieve($payment_id);
 
         // Get customer
         $billables = config('marqant-pay.billables', []);

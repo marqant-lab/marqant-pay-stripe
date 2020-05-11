@@ -3,11 +3,12 @@
 namespace Marqant\MarqantPayStripe\Jobs;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
 use Marqant\MarqantPay\Models\Payment;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Marqant\MarqantPay\Services\MarqantPay;
 use Spatie\WebhookClient\Models\WebhookCall;
-use Illuminate\Queue\{SerializesModels, InteractsWithQueue};
 
 /**
  * WebHook for processing 'payment_intent.succeeded' event from Stripe
@@ -42,13 +43,13 @@ class HandlePaymentIntentSucceeded implements ShouldQueue
         if (empty($webhook_data['data']['object']['id']))
             throw new \Exception('Empty Stripe PaymentIntent ID');
 
-        $paymentID = $webhook_data['data']['object']['id'];
-        $Payment = Payment::where('stripe_payment_intent', $paymentID)
+        $payment_id = $webhook_data['data']['object']['id'];
+        $Payment = Payment::where('stripe_payment_intent', $payment_id)
             ->first();
 
         // Create Payment if not exists
         if (empty($Payment)) {
-            $Payment = MarqantPay::createPaymentByProviderPaymentID('stripe', $paymentID);
+            $Payment = MarqantPay::createPaymentByProviderPaymentID('stripe', $payment_id);
         }
 
         // Update Payment status
