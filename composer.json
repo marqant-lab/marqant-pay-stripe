@@ -16,6 +16,7 @@
     "autoload": {
         "psr-4": {
             "Marqant\\MarqantPayStripe\\Seeds\\": "database/seeds/",
+            "Marqant\\MarqantPayStripe\\Tests\\": "tests/",
             "Marqant\\MarqantPayStripe\\": "src/"
         }
     },
