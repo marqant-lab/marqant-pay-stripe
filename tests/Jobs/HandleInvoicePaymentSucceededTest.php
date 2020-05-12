@@ -18,7 +18,7 @@ class HandleInvoicePaymentSucceededTest extends MarqantPayStripeTestCase
     /**
      * Test WebHook event 'invoice.payment_succeeded'.
      *
-     * @group Stripe
+     * @group MarqantPayStripe
      *
      * @test
      *
