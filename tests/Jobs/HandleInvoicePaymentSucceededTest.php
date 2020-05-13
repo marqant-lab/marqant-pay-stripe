@@ -33,6 +33,11 @@ class HandleInvoicePaymentSucceededTest extends MarqantPayStripeTestCase
          * @var \App\User $User
          */
 
+        // Update config so we have the marqant-pay.invoice_service
+        // setting set to the PdfInvoice service
+        $PdfInvoiceService = \Marqant\MarqantPayInvoices\Services\PdfInvoice::class;
+        config(['marqant-pay.invoice_service' => $PdfInvoiceService]);
+
         $amount = 999; // 9,99 ($|€|...)
 
         $description = 'test webhook event \'invoice.payment_succeeded\'';
@@ -56,17 +61,17 @@ class HandleInvoicePaymentSucceededTest extends MarqantPayStripeTestCase
         $this->assertEquals($description, $Payment->description);
 
         $WebhookCall = WebhookCall::create([
-            'name' => 'stripe',
+            'name'    => 'stripe',
             'payload' => [
-                'type' => 'invoice.payment_succeeded',
+                'type'     => 'invoice.payment_succeeded',
                 "livemode" => false,
-                'data' => [
+                'data'     => [
                     'object' => [
-                        'customer' => $User->stripe_id,
+                        'customer'       => $User->stripe_id,
                         'payment_intent' => null,
-                        'charge' => $Payment->stripe_charge,
-                    ]
-                ]
+                        'charge'         => $Payment->stripe_charge,
+                    ],
+                ],
             ],
         ]);
 
