@@ -3,6 +3,7 @@
 namespace Marqant\MarqantPayStripe\Tests\Jobs;
 
 use Stripe\PaymentIntent;
+use Illuminate\Support\Facades\Storage;
 use Spatie\WebhookClient\Models\WebhookCall;
 use Marqant\MarqantPayStripe\Tests\MarqantPayStripeTestCase;
 use Marqant\MarqantPayStripe\Jobs\HandleInvoicePaymentSucceeded;
@@ -82,6 +83,10 @@ class HandleInvoicePaymentSucceededTest extends MarqantPayStripeTestCase
 
         // check if invoice pdf file were created
         $this->assertNotEmpty($Payment->invoice);
+
+        // check if invoice pdf file exists
+        $this->assertFileExists(Storage::disk(env('FILESYSTEM_DRIVER', 'public'))
+            ->path($Payment->invoice));
     }
 
 }
