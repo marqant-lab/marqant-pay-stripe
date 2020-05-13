@@ -402,8 +402,8 @@ class StripePaymentGateway extends PaymentGatewayContract
 
         // Get customer
         $billables = config('marqant-pay.billables', []);
-        $Billable  = collect($billables)->first();
-        $Billable  = $Billable::where('stripe_id', $PaymentIntent->customer)
+        $Billable = collect($billables)->first();
+        $Billable = $Billable::where('stripe_id', $PaymentIntent->customer)
             ->firstOrFail();
 
         return self::createPaymentFromPaymentIntent($Billable, $PaymentIntent);
@@ -423,13 +423,12 @@ class StripePaymentGateway extends PaymentGatewayContract
     {
         // Get customer
         $billables = config('marqant-pay.billables', []);
-        $Billable  = collect($billables)->first();
-        $Billable  = $Billable::where('stripe_id', $invoice_data['customer'])
+        $Billable = collect($billables)->first();
+        $Billable = $Billable::where('stripe_id', $invoice_data['customer'])
             ->firstOrFail();
 
         // Get PaymentIntent and get Payment
         if (isset($invoice_data['payment_intent'])) {
-
             // Get PaymentIntent from Stripe
             $PaymentIntent = PaymentIntent::retrieve($invoice_data['payment_intent']);
 
@@ -438,7 +437,7 @@ class StripePaymentGateway extends PaymentGatewayContract
                 ->first();
 
             // Create Payment
-            if (empty($Payment)){
+            if (empty($Payment)) {
                 return self::createPaymentFromPaymentIntent($Billable, $PaymentIntent);
             }
 
@@ -447,11 +446,9 @@ class StripePaymentGateway extends PaymentGatewayContract
 
         // Get Charge and get Payment
         if (isset($invoice_data['charge'])) {
-
             // Get Charge from Stripe
             $Charge = Charge::retrieve($invoice_data['charge']);
             if (isset($Charge->payment_intent)) {
-
                 // Get PaymentIntent from Stripe
                 $PaymentIntent = PaymentIntent::retrieve($Charge->payment_intent);
 
@@ -468,7 +465,7 @@ class StripePaymentGateway extends PaymentGatewayContract
             return $Payment;
         }
 
-        throw new Exception('Can\'t get Payment using current Invoice data' );
+        throw new Exception('Can\'t get Payment using current Invoice data');
     }
 
     /**
@@ -549,6 +546,7 @@ class StripePaymentGateway extends PaymentGatewayContract
 
         // update the values on the plan
         $Plan->update([
+            'provider'       => self::PAYMENT_PROVIDER,
             'stripe_id'      => $StripePlan->id,
             'stripe_product' => $StripePlan->product,
         ]);
