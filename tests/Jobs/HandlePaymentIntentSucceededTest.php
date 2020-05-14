@@ -37,7 +37,7 @@ class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
          * @var \App\User $User
          */
 
-        $amount = 999; // 9,99 ($|€|...)
+        $amount = 9.99; // 9,99 ($|€|...)
 
         $description = 'test webhook event \'payment_intent.succeeded\'';
 
@@ -51,7 +51,7 @@ class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
         $this->assertInstanceOf(config('marqant-pay.payment_model'), $Payment);
 
         // check the amount
-        $this->assertEquals($amount, $Payment->amount_raw);
+        $this->assertEquals($amount, $Payment->amount);
 
         // check if we billed the correct user
         $this->assertEquals($User->provider_id, $Payment->customer);

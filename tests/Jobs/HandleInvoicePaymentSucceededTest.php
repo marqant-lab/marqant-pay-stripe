@@ -38,7 +38,7 @@ class HandleInvoicePaymentSucceededTest extends MarqantPayStripeTestCase
         $PdfInvoiceService = \Marqant\MarqantPayInvoices\Services\PdfInvoice::class;
         config(['marqant-pay.invoice_service' => $PdfInvoiceService]);
 
-        $amount = 999; // 9,99 ($|€|...)
+        $amount = 9.99; // 9,99 ($|€|...)
 
         $description = 'test webhook event \'invoice.payment_succeeded\'';
 
@@ -52,7 +52,7 @@ class HandleInvoicePaymentSucceededTest extends MarqantPayStripeTestCase
         $this->assertInstanceOf(config('marqant-pay.payment_model'), $Payment);
 
         // check the amount
-        $this->assertEquals($amount, $Payment->amount_raw);
+        $this->assertEquals($amount, $Payment->amount);
 
         // check if we billed the correct user
         $this->assertEquals($User->provider_id, $Payment->customer);

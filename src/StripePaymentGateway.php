@@ -224,7 +224,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      * Charge a given billable for a given amount.
      *
      * @param \Illuminate\Database\Eloquent\Model                      $Billable
-     * @param int                                                      $amount
+     * @param float                                                    $amount
      * @param string                                                   $description
      * @param null|\Marqant\MarqantPay\Contracts\PaymentMethodContract $PaymentMethod
      *
@@ -232,7 +232,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      *
      * @throws \Stripe\Exception\ApiErrorException
      */
-    public function charge(Model $Billable, int $amount, string $description,
+    public function charge(Model $Billable, float $amount, string $description,
                            ?PaymentMethodContract $PaymentMethod = null): Model
     {
         /**
@@ -252,7 +252,7 @@ class StripePaymentGateway extends PaymentGatewayContract
         // create options for stripe payment (payment intent)
         $options = [
             'customer'            => $Billable->stripe_id,
-            'amount'              => $amount,
+            'amount'              => $amount * 100,
             'description'         => $description,
             'payment_method'      => $PaymentMethod->object,
             'currency'            => $this->getCurrency(),
@@ -536,7 +536,7 @@ class StripePaymentGateway extends PaymentGatewayContract
 
         // create plan on stripe
         $StripePlan = Plan::create([
-            'amount'   => $Plan->amount,
+            'amount'   => $Plan->amount_raw,
             'currency' => self::getCurrency(),
             'interval' => self::resolvePlanIntervalFromPlan($Plan),
             'product'  => [
