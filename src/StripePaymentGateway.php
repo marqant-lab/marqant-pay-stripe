@@ -295,7 +295,7 @@ class StripePaymentGateway extends PaymentGatewayContract
 
                 // TODO: find out if we can use `amount` or if we have to use `amount_received` instead. Maybe we even
                 //       need both of them.
-                'amount'                 => $PaymentIntent->amount,
+                'amount_raw'             => $PaymentIntent->amount,
 
                 // description of the payment used in invoice
                 'description'            => $PaymentIntent->description,

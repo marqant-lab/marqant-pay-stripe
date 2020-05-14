@@ -51,7 +51,7 @@ class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
         $this->assertInstanceOf(config('marqant-pay.payment_model'), $Payment);
 
         // check the amount
-        $this->assertEquals($amount, $Payment->amount);
+        $this->assertEquals($amount, $Payment->amount_raw);
 
         // check if we billed the correct user
         $this->assertEquals($User->provider_id, $Payment->customer);
@@ -60,15 +60,15 @@ class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
         $this->assertEquals($description, $Payment->description);
 
         $WebhookCall = WebhookCall::create([
-            'name' => 'stripe',
+            'name'    => 'stripe',
             'payload' => [
-                'type' => 'payment_intent.succeeded',
+                'type'     => 'payment_intent.succeeded',
                 "livemode" => false,
-                'data' => [
+                'data'     => [
                     'object' => [
                         'id' => $Payment->stripe_payment_intent,
-                    ]
-                ]
+                    ],
+                ],
             ],
         ]);
 
