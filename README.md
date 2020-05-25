@@ -57,18 +57,14 @@ Next you will need to add the fields for stripe on the billables you setup in th
  following for each billable model that you have setup (or will setup).
  
 ```shell script
-php artisan marqant-pay:migrations:stripe App\\User
-# or
-php artisan marqant-pay:migrations:stripe "App\User"
+php artisan marqant-pay:migrations:stripe
 ```
 
 If you are using the [marqant-lab/marqant-pay-subscriptions](https://github.com/marqant-lab/marqant-pay-subscriptions
 ) package to enable subscriptions, then you will need to add the `--subscriptions` flag to the choosen command.
  
 ```shell script
-php artisan marqant-pay:migrations:stripe App\\User --subscriptions
-# or
-php artisan marqant-pay:migrations:stripe "App\User" --subscriptions
+php artisan marqant-pay:migrations:stripe --subscriptions
 ```
 
 Now you can run the migrations as usual.
