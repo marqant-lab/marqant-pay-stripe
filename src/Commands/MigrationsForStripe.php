@@ -10,7 +10,6 @@ use Marqant\MarqantPay\Traits\Billable;
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\Finder\SplFileInfo;
 use Marqant\MarqantPaySubscriptions\Traits\RepresentsPlan;
-use Marqant\MarqantPaySubscriptions\Traits\RepresentsSubscription;
 
 class MigrationsForStripe extends Command
 {
@@ -20,7 +19,6 @@ class MigrationsForStripe extends Command
      * @var string
      */
     protected $signature = 'marqant-pay:migrations:stripe
-                                {billable : The billable model to create the migrations for.}
                                 {-- subscriptions : Should the subscription migrations also be run.}';
 
     /**
@@ -59,13 +57,18 @@ class MigrationsForStripe extends Command
     /**
      * Get billable argument from input and resolve it to a model with the Billable trait attached.
      *
-     * @return Model
+     * @param string $model_name
+     *
+     * @return Model|null
      */
-    private function getBillableModel()
+    private function getBillableModel(string $model_name)
     {
-        $Billable = app($this->argument('billable'));
+        $Billable = app($model_name);
 
-        $this->checkIfModelIsBillable($Billable);
+        $can_continue = $this->checkIfModelIsBillable($Billable);
+        if ($can_continue === false) {
+            return null;
+        }
 
         return $Billable;
     }
@@ -79,39 +82,12 @@ class MigrationsForStripe extends Command
     {
         $Plan = app(config('marqant-pay-subscriptions.plan_model'));
 
-        $this->checkIfModelIsPlan($Plan);
-
-        return $Plan;
-    }
-
-    /**
-     * Get billable argument from input and resolve it to a model with the Billable trait attached.
-     *
-     * @return Model
-     */
-    private function getSubscriptionModel()
-    {
-        $Plan = app(config('marqant-pay-subscriptions.subscription_model'));
-
-        $this->checkIfModelIsSubscription($Plan);
-
-        return $Plan;
-    }
-
-    /**
-     * Ensure, that the given model actually uses the RepresentsSubscription trait.
-     * If it doesn't, print out an error message and exit the command.
-     *
-     * @param \Illuminate\Database\Eloquent\Model $Subscription
-     */
-    private function checkIfModelIsSubscription(Model $Subscription): void
-    {
-        $traits = class_uses($Subscription);
-
-        if (!collect($traits)->contains(RepresentsSubscription::class)) {
-            $this->error('The given model is not a Subscription.');
-            exit(1);
+        $can_continue = $this->checkIfModelIsPlan($Plan);
+        if ($can_continue === false) {
+            return null;
         }
+
+        return $Plan;
     }
 
     /**
@@ -119,15 +95,20 @@ class MigrationsForStripe extends Command
      * If it doesn't, print out an error message and exit the command.
      *
      * @param \Illuminate\Database\Eloquent\Model $Billable
+     *
+     * @return bool
      */
-    private function checkIfModelIsBillable(Model $Billable): void
+    private function checkIfModelIsBillable(Model $Billable): bool
     {
         $traits = class_uses($Billable);
 
         if (!collect($traits)->contains(Billable::class)) {
-            $this->error('The given model is not a Billable.');
-            exit(1);
+            $this->alert('The given model is not a Billable.');
+
+            return false;
         }
+
+        return true;
     }
 
     /**
@@ -135,15 +116,20 @@ class MigrationsForStripe extends Command
      * If it doesn't, print out an error message and exit the command.
      *
      * @param \Illuminate\Database\Eloquent\Model $Plan
+     *
+     * @return bool
      */
-    private function checkIfModelIsPlan(Model $Plan): void
+    private function checkIfModelIsPlan(Model $Plan): bool
     {
         $traits = class_uses($Plan);
 
         if (!collect($traits)->contains(RepresentsPlan::class)) {
-            $this->error('The given model does not represent a Plan.');
-            exit(1);
+            $this->alert('The given model does not represent a Plan.');
+
+            return false;
         }
+
+        return true;
     }
 
     /**
@@ -161,19 +147,39 @@ class MigrationsForStripe extends Command
      */
     private function makeMigrationForBillable()
     {
-        $Billable = $this->getBillableModel();
+        // get all billable models from config
+        $billables = collect(config('marqant-pay.billables'));
 
-        $table = $this->getTableFromModel($Billable);
+        $billables->each(function ($model_name) {
+            $this->line("create migration for '$model_name' model");
 
-        $stub_path = $this->getBillableStubPath();
+            $Billable = $this->getBillableModel($model_name);
+            if (is_null($Billable)) {
+                return;
+            }
 
-        $stub = $this->getStub($stub_path);
+            $table = $this->getTableFromModel($Billable);
 
-        $this->replaceClassName($stub, $table);
+            $path = database_path('migrations');
 
-        $this->replaceTableName($stub, $table);
+            // no need to create migration if it is already exists
+            $can_continue = $this->preventDuplicates($path, $table);
+            if ($can_continue === false) {
+                return;
+            }
 
-        $this->saveMigration($stub, $table);
+            $stub_path = $this->getBillableStubPath();
+
+            $stub = $this->getStub($stub_path);
+
+            $this->replaceClassName($stub, $table);
+
+            $this->replaceTableName($stub, $table);
+
+            $this->saveMigration($stub, $table);
+
+            $this->line("completed processing '$model_name' model");
+        });
     }
 
     /**
@@ -188,8 +194,19 @@ class MigrationsForStripe extends Command
         }
 
         $Plan = $this->getPlanModel();
+        if (is_null($Plan)) {
+            return;
+        }
 
         $table = $this->getTableFromModel($Plan);
+
+        $path = database_path('migrations');
+
+        // no need to create migration if it is already exists
+        $can_continue = $this->preventDuplicates($path, $table);
+        if ($can_continue === false) {
+            return;
+        }
 
         $stub_path = $this->getPlanStubPath();
 
@@ -214,12 +231,23 @@ class MigrationsForStripe extends Command
         }
 
         $Plan = $this->getPlanModel();
+        if (is_null($Plan)) {
+            return;
+        }
 
         $plans_table = $this->getTableFromModel($Plan);
 
         $plan_singular = $this->getSingular($plans_table);
 
         $table = "billable_{$plan_singular}";
+
+        $path = database_path('migrations');
+
+        // no need to create migration if it is already exists
+        $can_continue = $this->preventDuplicates($path, $table);
+        if ($can_continue === false) {
+            return;
+        }
 
         $class_name = "Billable" . ucfirst($plan_singular);
 
@@ -331,7 +359,10 @@ class MigrationsForStripe extends Command
 
         $path = database_path('migrations');
 
-        $this->preventDuplicates($path, $table);
+        $can_continue = $this->preventDuplicates($path, $table);
+        if ($can_continue === false) {
+            return;
+        }
 
         File::put($path . '/' . $file_name, $stub);
     }
@@ -367,10 +398,14 @@ class MigrationsForStripe extends Command
     }
 
     /**
+     * Check if migration already exists
+     *
      * @param string $path
      * @param string $table
+     *
+     * @return bool - true if can continue, false if find migration
      */
-    private function preventDuplicates(string $path, string $table)
+    private function preventDuplicates(string $path, string $table): bool
     {
         $file = "add_marqant_pay_stripe_fields_to_{$table}_table.php";
 
@@ -383,8 +418,11 @@ class MigrationsForStripe extends Command
             });
 
         if ($files->contains($file)) {
-            $this->error("Migration for marqant pay stripe fields on {$table} already exists.");
-            exit(1);
+            $this->alert("Migration for marqant pay stripe fields on '{$table}' already exists.");
+
+            return false;
         }
+
+        return true;
     }
 }
