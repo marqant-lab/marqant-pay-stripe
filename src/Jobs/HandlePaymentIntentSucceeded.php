@@ -4,8 +4,8 @@ namespace Marqant\MarqantPayStripe\Jobs;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
 use Marqant\MarqantPay\Models\Payment;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Marqant\MarqantPay\Services\MarqantPay;
 use Spatie\WebhookClient\Models\WebhookCall;

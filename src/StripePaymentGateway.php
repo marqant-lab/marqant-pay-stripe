@@ -2,6 +2,7 @@
 
 namespace Marqant\MarqantPayStripe;
 
+use Mail;
 use Exception;
 use Stripe\Plan;
 use Stripe\Charge;
@@ -9,6 +10,7 @@ use Stripe\Customer;
 use Stripe\PaymentIntent;
 use Marqant\MarqantPay\Models\Payment;
 use Illuminate\Database\Eloquent\Model;
+use Marqant\MarqantPay\Mail\PaymentFailed;
 use Marqant\MarqantPay\Services\MarqantPay;
 use Stripe\SetupIntent as StripeSetupIntent;
 use Stripe\Subscription as StripeSubscription;
@@ -231,6 +233,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      * @return \Illuminate\Database\Eloquent\Model
      *
      * @throws \Stripe\Exception\ApiErrorException
+     * @throws \Exception
      */
     public function charge(Model $Billable, float $amount, string $description,
                            ?PaymentMethodContract $PaymentMethod = null): Model
@@ -275,7 +278,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      *
      * @return \Illuminate\Database\Eloquent\Model
      *
-     * @throws Exception
+     * @throws \Exception
      */
     public static function createPaymentFromPaymentIntent(Model $Billable, PaymentIntent $PaymentIntent): Model
     {
@@ -367,20 +370,61 @@ class StripePaymentGateway extends PaymentGatewayContract
     }
 
     /**
-     * @param Model $Payment
+     * Update Payment status through Stripe provider
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Payment
+     * @param string|null                         $status
      *
      * @return \Illuminate\Database\Eloquent\Model
      *
      * @throws \Stripe\Exception\ApiErrorException
      */
-    public function updatePaymentStatus(Model $Payment): Model
+    public function updatePaymentStatus(Model $Payment, $status = null): Model
     {
         // retrieve payment (payment intent) from stripes end
         $PaymentIntent = PaymentIntent::retrieve($Payment->stripe_payment_intent, []);
         $Payment->update([
-            'status'        => $PaymentIntent->status,
+            'status'        => $status ?? $PaymentIntent->status,
             'stripe_status' => $PaymentIntent->status,
         ]);
+
+        return $Payment;
+    }
+
+    /**
+     * Send email if Payment failed for Stripe provider
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Payment
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     */
+    public function sendEmailFailedPayment(Model $Payment): Model
+    {
+        // send out email to billable
+        Mail::to($Payment->billable)
+            ->send(new PaymentFailed($Payment));
+
+        return $Payment;
+    }
+
+    /**
+     * Send email if Payment failed to support emails
+     *
+     * @param \Illuminate\Database\Eloquent\Model $Payment
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     */
+    public function sendSupportEmailFailedPayment(Model $Payment): Model
+    {
+        $support_emails = collect(config('marqant-pay.support_emails', []));
+
+        $support_emails->each(function ($email) use ($Payment) {
+          // send out email to support email
+          $PaymentFailed = new PaymentFailed($Payment);
+          $PaymentFailed->setEmailTemplate('payment_failed_support_email_view');
+          Mail::to($email)
+              ->send($PaymentFailed);
+        });
 
         return $Payment;
     }
