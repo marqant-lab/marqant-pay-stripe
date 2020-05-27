@@ -112,5 +112,28 @@ http://your.awesome.site/stripe/webhook
 Available stripe events:  
  - payment_intent.succeeded
  - invoice.payment_succeeded
+ - payment_intent.payment_failed
+ - charge.failed (not completed)
+
+For 'payment_intent.payment_failed' you should set configs
+ `'marqant-pay.payment_urls.base_url'` and `'marqant-pay.payment_urls.payment_sub_url'`,  
+description at config file.  
+You need also look at `'marqant-pay.support_emails'` config.
+
+You can also add to project/resources/lang these keys for translate:  
+ - "Here"  
+ - "Payment failed."  
+ - "Requires payment method."  
+ - "You needs to update your payment method in the"  
+Don't forget: it should be json file.
+
+Example resources/lang/en.json:
+```json
+{
+  "Payment failed.": "Payment failed translation."
+}
+```
+ 
+They are used at emails for `'payment_intent.payment_failed'` event
 
 That's all you need
