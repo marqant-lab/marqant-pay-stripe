@@ -1,25 +1,20 @@
 <?php
-/**
- * HandlePaymentIntentSucceededTest.php code file.
- * User: Dmytro Sydorenko (dmytro@du.digital)
- * Date: 2020-05-12
- */
 
 namespace Marqant\MarqantPayStripe\Tests\Jobs;
 
-use Stripe\PaymentIntent;
+
+use Marqant\MarqantPay\Models\Payment;
 use Spatie\WebhookClient\Models\WebhookCall;
 use Marqant\MarqantPayStripe\Tests\MarqantPayStripeTestCase;
-use Marqant\MarqantPayStripe\Jobs\HandlePaymentIntentSucceeded;
+use Marqant\MarqantPayStripe\Jobs\HandlePaymentIntentPaymentFailed;
 
 /**
- * Class HandlePaymentIntentSucceededTest
+ * Class HandlePaymentIntentPaymentFailedTest
  *
  * @package Marqant\MarqantPayStripe\Tests\Jobs
  */
-class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
+class HandlePaymentIntentPaymentFailedTest extends MarqantPayStripeTestCase
 {
-
     /**
      * Test WebHook event 'invoice.payment_succeeded'.
      *
@@ -31,7 +26,7 @@ class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
      *
      * @throws \Exception
      */
-    public function test_webhook_payment_intent_succeeded()
+    public function test_webhook_payment_intent_payment_failed()
     {
         /**
          * @var \App\User $User
@@ -39,7 +34,7 @@ class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
 
         $amount = 9.99; // 9,99 ($|€|...)
 
-        $description = 'test webhook event \'payment_intent.succeeded\'';
+        $description = 'test webhook event \'payment_intent.payment_failed\'';
 
         // create fake customer through factory
         $User = $this->createBillableUser();
@@ -62,7 +57,7 @@ class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
         $WebhookCall = WebhookCall::create([
             'name'    => 'stripe',
             'payload' => [
-                'type'     => 'payment_intent.succeeded',
+                'type'     => 'payment_intent.payment_failed',
                 "livemode" => false,
                 'data'     => [
                     'object' => [
@@ -73,15 +68,14 @@ class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
         ]);
 
         // create webhook
-        $processStripeWebhookJob = new HandlePaymentIntentSucceeded($WebhookCall);
+        $processStripeWebhookJob = new HandlePaymentIntentPaymentFailed($WebhookCall);
         // fires webhook
         $processStripeWebhookJob->handle();
 
         // update data from database
         $Payment->refresh();
 
-        // check if Payment status 'succeeded'
-        $this->assertEquals(PaymentIntent::STATUS_SUCCEEDED, $Payment->status);
+        // check if Payment status 'failed'
+        $this->assertEquals(Payment::STATUS_FAILED, $Payment->status);
     }
-
 }
