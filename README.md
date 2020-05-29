@@ -127,6 +127,8 @@ You can also add to project/resources/lang these keys for translate:
  - "You needs to update your payment method in the"  
 Don't forget: it should be json file.
 
+Also you can overwrite 'payment_failed_email_view' and 'payment_failed_support_email_view' at 'marqant-pay' config to your project views.
+
 Example resources/lang/en.json:
 ```json
 {
