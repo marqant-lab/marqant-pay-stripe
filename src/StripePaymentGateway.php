@@ -47,7 +47,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      * @return \Illuminate\Database\Eloquent\Model
      * @throws \Stripe\Exception\ApiErrorException
      */
-    public function createCustomer(Model &$Billable): Model
+    public function createCustomer(Model $Billable): Model
     {
         $Customer = Customer::create([
             'email' => $Billable->email,
@@ -64,7 +64,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      * @param \Illuminate\Database\Eloquent\Model $Billable
      * @param \Stripe\Customer                    $Customer
      */
-    private static function updateCustomerInformation(Model &$Billable, Customer $Customer)
+    private static function updateCustomerInformation(Model $Billable, Customer $Customer)
     {
         $Billable->update([
             'marqant_pay_provider' => self::PAYMENT_PROVIDER,
@@ -644,7 +644,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      *
      * @throws \Stripe\Exception\ApiErrorException
      */
-    public function subscribe(Model &$Billable, Model $Plan): Model
+    public function subscribe(Model $Billable, Model $Plan): Model
     {
         /**
          * @var \Marqant\MarqantPaySubscriptions\Models\Subscription $SubscriptionModel
