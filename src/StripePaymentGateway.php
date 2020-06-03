@@ -419,11 +419,11 @@ class StripePaymentGateway extends PaymentGatewayContract
         $support_emails = collect(config('marqant-pay.support_emails', []));
 
         $support_emails->each(function ($email) use ($Payment) {
-          // send out email to support email
-          $PaymentFailed = new PaymentFailed($Payment);
-          $PaymentFailed->setEmailTemplate('payment_failed_support_email_view');
-          Mail::to($email)
-              ->send($PaymentFailed);
+            // send out email to support email
+            $PaymentFailed = new PaymentFailed($Payment);
+            $PaymentFailed->setEmailTemplate('payment_failed_support_email_view');
+            Mail::to($email)
+                ->send($PaymentFailed);
         });
 
         return $Payment;
@@ -650,6 +650,7 @@ class StripePaymentGateway extends PaymentGatewayContract
          * @var \Marqant\MarqantPaySubscriptions\Models\Subscription $SubscriptionModel
          * @var \App\User                                            $Billable
          */
+
         // create stripe subscription
         $customer = $Billable->stripe_id;
         $payment_method = $Billable->stripe_pm_token;
