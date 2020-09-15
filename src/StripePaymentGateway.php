@@ -132,9 +132,10 @@ class StripePaymentGateway extends PaymentGatewayContract
      *
      * @return void
      */
-    private static function updatePaymentMethodInformation(Model &$Billable,
-                                                           ?PaymentMethodContract $PaymentMethod = null): void
-    {
+    private static function updatePaymentMethodInformation(
+        Model &$Billable,
+        ?PaymentMethodContract $PaymentMethod = null
+    ): void {
         if ($PaymentMethod) {
             $data = [
                 'stripe_pm_token' => $PaymentMethod->object->id,
@@ -193,7 +194,7 @@ class StripePaymentGateway extends PaymentGatewayContract
     /**
      * Remove payment method from billable.
      *
-     * @param \Illuminate\Database\Eloquent\Model                 $Billable
+     * @param \Illuminate\Database\Eloquent\Model $Billable
      *
      * @param \Marqant\MarqantPay\Contracts\PaymentMethodContract $PaymentMethod
      *
@@ -235,9 +236,12 @@ class StripePaymentGateway extends PaymentGatewayContract
      * @throws \Stripe\Exception\ApiErrorException
      * @throws \Exception
      */
-    public function charge(Model $Billable, float $amount, string $description,
-                           ?PaymentMethodContract $PaymentMethod = null): Model
-    {
+    public function charge(
+        Model $Billable,
+        float $amount,
+        string $description,
+        ?PaymentMethodContract $PaymentMethod = null
+    ): Model {
         /**
          * @var \App\User $Billable
          */
@@ -282,13 +286,14 @@ class StripePaymentGateway extends PaymentGatewayContract
      */
     public static function createPaymentFromPaymentIntent(Model $Billable, PaymentIntent $PaymentIntent): Model
     {
+        dd($PaymentIntent);
+
         // validate the payment intent
         self::validatePaymentIntent($PaymentIntent);
 
         // create payment
         $Payment = $Billable->payments()
             ->create([
-
                 // default fields
                 'provider'               => self::PAYMENT_PROVIDER,
                 'currency'               => $PaymentIntent->currency,
@@ -298,7 +303,8 @@ class StripePaymentGateway extends PaymentGatewayContract
 
                 // TODO: find out if we can use `amount` or if we have to use `amount_received` instead. Maybe we even
                 //       need both of them.
-                'amount_raw'             => $PaymentIntent->amount,
+                // 'amount_raw'             => $PaymentIntent->amount,
+                'amount'             => $PaymentIntent->amount,
 
                 // description of the payment used in invoice
                 'description'            => $PaymentIntent->description,
@@ -339,7 +345,6 @@ class StripePaymentGateway extends PaymentGatewayContract
         // create payment
         $Payment = $Billable->payments()
             ->create([
-
                 // default fields
                 'provider'               => self::PAYMENT_PROVIDER,
                 'currency'               => $Charge->currency,
@@ -446,8 +451,8 @@ class StripePaymentGateway extends PaymentGatewayContract
 
         // Get customer
         $billables = config('marqant-pay.billables', []);
-        $Billable = collect($billables)->first();
-        $Billable = $Billable::where('stripe_id', $PaymentIntent->customer)
+        $Billable  = collect($billables)->first();
+        $Billable  = $Billable::where('stripe_id', $PaymentIntent->customer)
             ->firstOrFail();
 
         return self::createPaymentFromPaymentIntent($Billable, $PaymentIntent);
@@ -467,8 +472,8 @@ class StripePaymentGateway extends PaymentGatewayContract
     {
         // Get customer
         $billables = config('marqant-pay.billables', []);
-        $Billable = collect($billables)->first();
-        $Billable = $Billable::where('stripe_id', $invoice_data['customer'])
+        $Billable  = collect($billables)->first();
+        $Billable  = $Billable::where('stripe_id', $invoice_data['customer'])
             ->firstOrFail();
 
         // Get PaymentIntent and get Payment
@@ -652,9 +657,9 @@ class StripePaymentGateway extends PaymentGatewayContract
          */
 
         // create stripe subscription
-        $customer = $Billable->stripe_id;
+        $customer       = $Billable->stripe_id;
         $payment_method = $Billable->stripe_pm_token;
-        $subscription = [
+        $subscription   = [
             'customer'               => $customer,
             'default_payment_method' => $payment_method,
             'items'                  => [
