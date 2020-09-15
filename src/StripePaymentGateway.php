@@ -286,7 +286,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      */
     public static function createPaymentFromPaymentIntent(Model $Billable, PaymentIntent $PaymentIntent): Model
     {
-        dd($PaymentIntent);
+        // dd($PaymentIntent);
 
         // validate the payment intent
         self::validatePaymentIntent($PaymentIntent);
