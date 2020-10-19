@@ -301,10 +301,8 @@ class StripePaymentGateway extends PaymentGatewayContract
                 // TODO: resolve propperly against configuration
                 'status'                 => $PaymentIntent->status,
 
-                // TODO: find out if we can use `amount` or if we have to use `amount_received` instead. Maybe we even
-                //       need both of them.
-                // 'amount_raw'             => $PaymentIntent->amount,
-                'amount'             => $PaymentIntent->amount,
+                // here we have values from stripe, so we need to devide by 100
+                'amount'             => $PaymentIntent->amount / 100,
 
                 // description of the payment used in invoice
                 'description'            => $PaymentIntent->description,
@@ -352,9 +350,8 @@ class StripePaymentGateway extends PaymentGatewayContract
                 // TODO: resolve propperly against configuration
                 'status'                 => $Charge->status,
 
-                // TODO: find out if we can use `amount` or if we have to use `amount_received` instead. Maybe we even
-                //       need both of them.
-                'amount'                 => $Charge->amount,
+                // here we have values from stripe, so we need to devide by 100
+                'amount'                 => $Charge->amount / 100,
 
                 // stripe fields
                 'stripe_payment_intent'  => $Charge->payment_intent ?? '',
