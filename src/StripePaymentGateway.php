@@ -109,7 +109,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      * @return \Illuminate\Database\Eloquent\Model
      * @throws \Stripe\Exception\ApiErrorException
      */
-    public function savePaymentMethod(Model &$Billable, PaymentMethodContract $PaymentMethod): Model
+    public function savePaymentMethod(Model $Billable, PaymentMethodContract $PaymentMethod): Model
     {
         // create the payment method on the provider
         if ($PaymentMethod->object->customer !== $Billable->stripe_id) {
@@ -133,7 +133,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      * @return void
      */
     private static function updatePaymentMethodInformation(
-        Model &$Billable,
+        Model $Billable,
         ?PaymentMethodContract $PaymentMethod = null
     ): void {
         if ($PaymentMethod) {
@@ -202,7 +202,7 @@ class StripePaymentGateway extends PaymentGatewayContract
      *
      * @throws \Exception
      */
-    public function removePaymentMethod(Model &$Billable, PaymentMethodContract $PaymentMethod): Model
+    public function removePaymentMethod(Model $Billable, PaymentMethodContract $PaymentMethod): Model
     {
         // remove payment method on stripe
         $PaymentMethod->object->detach();
@@ -228,8 +228,8 @@ class StripePaymentGateway extends PaymentGatewayContract
      *
      * @param \Illuminate\Database\Eloquent\Model                      $Billable
      * @param float                                                    $amount
-     * @param string                                                   $description
      * @param null|\Marqant\MarqantPay\Contracts\PaymentMethodContract $PaymentMethod
+     * @param null|string                                              $description
      *
      * @return \Illuminate\Database\Eloquent\Model
      *
@@ -239,8 +239,8 @@ class StripePaymentGateway extends PaymentGatewayContract
     public function charge(
         Model $Billable,
         float $amount,
-        string $description,
-        ?PaymentMethodContract $PaymentMethod = null
+        ?PaymentMethodContract $PaymentMethod = null,
+        ?string $description = null
     ): Model {
         /**
          * @var \App\User $Billable
@@ -575,7 +575,7 @@ class StripePaymentGateway extends PaymentGatewayContract
         // connect plan with provider model
         $Provider = app(config('marqant-pay.provider_model'))
             ->where('slug', self::PAYMENT_PROVIDER)
-            ->first();
+            ->firstOrFail();
 
         $Plan->providers()
             ->syncWithoutDetaching([$Provider->id]);
