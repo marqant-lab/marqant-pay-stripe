@@ -15,7 +15,6 @@ use Marqant\MarqantPayStripe\Jobs\HandleInvoicePaymentSucceeded;
  */
 class HandleInvoicePaymentSucceededTest extends MarqantPayStripeTestCase
 {
-
     /**
      * Test WebHook event 'invoice.payment_succeeded'.
      *
@@ -46,7 +45,7 @@ class HandleInvoicePaymentSucceededTest extends MarqantPayStripeTestCase
         $User = $this->createBillableUser();
 
         // charge the user
-        $Payment = $User->charge($amount, $description);
+        $Payment = $User->charge($amount, null, $description);
 
         // check that we got back an instance of Payment
         $this->assertInstanceOf(config('marqant-pay.payment_model'), $Payment);
@@ -64,7 +63,7 @@ class HandleInvoicePaymentSucceededTest extends MarqantPayStripeTestCase
             'name'    => 'stripe',
             'payload' => [
                 'type'     => 'invoice.payment_succeeded',
-                "livemode" => false,
+                'livemode' => false,
                 'data'     => [
                     'object' => [
                         'customer'       => $User->stripe_id,
@@ -93,5 +92,4 @@ class HandleInvoicePaymentSucceededTest extends MarqantPayStripeTestCase
         $this->assertFileExists(Storage::disk(env('FILESYSTEM_DRIVER', 'public'))
             ->path($Payment->invoice));
     }
-
 }

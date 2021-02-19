@@ -260,7 +260,6 @@ class StripePaymentGateway extends PaymentGatewayContract
         $options = [
             'customer'            => $Billable->stripe_id,
             'amount'              => $amount * 100,
-            'description'         => $description,
             'payment_method'      => $PaymentMethod->object,
             'currency'            => $this->getCurrency(),
             'confirmation_method' => 'automatic',
@@ -271,7 +270,7 @@ class StripePaymentGateway extends PaymentGatewayContract
         // create payment (payment intent) on stripes end
         $PaymentIntent = PaymentIntent::create($options);
 
-        return self::createPaymentFromPaymentIntent($Billable, $PaymentIntent);
+        return self::createPaymentFromPaymentIntent($Billable, $PaymentIntent, $description);
     }
 
     /**
@@ -279,15 +278,14 @@ class StripePaymentGateway extends PaymentGatewayContract
      *
      * @param \Illuminate\Database\Eloquent\Model $Billable
      * @param \Stripe\PaymentIntent               $PaymentIntent
+     * @param null|string                         $description
      *
      * @return \Illuminate\Database\Eloquent\Model
      *
      * @throws \Exception
      */
-    public static function createPaymentFromPaymentIntent(Model $Billable, PaymentIntent $PaymentIntent): Model
+    public static function createPaymentFromPaymentIntent(Model $Billable, PaymentIntent $PaymentIntent, ?string $description): Model
     {
-        // dd($PaymentIntent);
-
         // validate the payment intent
         self::validatePaymentIntent($PaymentIntent);
 
@@ -305,7 +303,7 @@ class StripePaymentGateway extends PaymentGatewayContract
                 'amount'             => $PaymentIntent->amount / 100,
 
                 // description of the payment used in invoice
-                'description'            => $PaymentIntent->description,
+                'description'            => $description,
 
                 // stripe fields
                 'stripe_payment_intent'  => $PaymentIntent->id,

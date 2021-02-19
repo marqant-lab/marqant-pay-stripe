@@ -2,7 +2,6 @@
 
 namespace Marqant\MarqantPayStripe\Tests\Jobs;
 
-
 use Marqant\MarqantPay\Models\Payment;
 use Spatie\WebhookClient\Models\WebhookCall;
 use Marqant\MarqantPayStripe\Tests\MarqantPayStripeTestCase;
@@ -40,7 +39,7 @@ class HandlePaymentIntentPaymentFailedTest extends MarqantPayStripeTestCase
         $User = $this->createBillableUser();
 
         // charge the user
-        $Payment = $User->charge($amount, $description);
+        $Payment = $User->charge($amount, null, $description);
 
         // check that we got back an instance of Payment
         $this->assertInstanceOf(config('marqant-pay.payment_model'), $Payment);
@@ -58,7 +57,7 @@ class HandlePaymentIntentPaymentFailedTest extends MarqantPayStripeTestCase
             'name'    => 'stripe',
             'payload' => [
                 'type'     => 'payment_intent.payment_failed',
-                "livemode" => false,
+                'livemode' => false,
                 'data'     => [
                     'object' => [
                         'id' => $Payment->stripe_payment_intent,

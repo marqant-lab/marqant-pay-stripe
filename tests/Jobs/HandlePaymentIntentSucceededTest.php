@@ -19,7 +19,6 @@ use Marqant\MarqantPayStripe\Jobs\HandlePaymentIntentSucceeded;
  */
 class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
 {
-
     /**
      * Test WebHook event 'invoice.payment_succeeded'.
      *
@@ -45,7 +44,7 @@ class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
         $User = $this->createBillableUser();
 
         // charge the user
-        $Payment = $User->charge($amount, $description);
+        $Payment = $User->charge($amount, null, $description);
 
         // check that we got back an instance of Payment
         $this->assertInstanceOf(config('marqant-pay.payment_model'), $Payment);
@@ -63,7 +62,7 @@ class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
             'name'    => 'stripe',
             'payload' => [
                 'type'     => 'payment_intent.succeeded',
-                "livemode" => false,
+                'livemode' => false,
                 'data'     => [
                     'object' => [
                         'id' => $Payment->stripe_payment_intent,
@@ -83,5 +82,4 @@ class HandlePaymentIntentSucceededTest extends MarqantPayStripeTestCase
         // check if Payment status 'succeeded'
         $this->assertEquals(PaymentIntent::STATUS_SUCCEEDED, $Payment->status);
     }
-
 }
